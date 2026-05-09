@@ -15,6 +15,9 @@
   --text:#eaf0ff;
   --muted:#8b93a7;
   --accent:#6ee7ff;
+  --good:#7CFF6B;
+  --warn:#FFD36E;
+  --bad:#FF5C5C;
 }
 
 .light{
@@ -34,19 +37,18 @@ body{
   overflow-x:hidden;
 }
 
-/* BACKDROP */
+/* GLASS BACKGROUND */
 body::before{
   content:"";
   position:fixed;
   inset:0;
-  background:
-    radial-gradient(circle at 20% 20%, #6ee7ff33, transparent 40%),
-    radial-gradient(circle at 80% 80%, #7CFF6B22, transparent 40%);
+  background: radial-gradient(circle at 20% 20%, #6ee7ff33, transparent 40%),
+              radial-gradient(circle at 80% 80%, #7CFF6B22, transparent 40%);
   filter: blur(60px);
   z-index:-1;
 }
 
-/* TOP */
+/* TOP BAR */
 .top{
   display:flex;
   justify-content:space-between;
@@ -61,6 +63,39 @@ body::before{
 
 .logo span{color:var(--accent);}
 
+.menuBtn{
+  font-size:22px;
+  cursor:pointer;
+}
+
+/* MENU */
+.menu{
+  position:fixed;
+  top:0;
+  right:-300px;
+  width:260px;
+  height:100%;
+  background:var(--glass);
+  backdrop-filter: blur(20px);
+  padding:20px;
+  transition:0.3s;
+  z-index:10;
+}
+
+.menu.open{right:0;}
+
+.menu h3{margin-bottom:10px;}
+.menu button{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:var(--glass2);
+  color:var(--text);
+  cursor:pointer;
+}
+
 /* CARD */
 .card{
   margin:20px;
@@ -71,19 +106,19 @@ body::before{
   backdrop-filter: blur(20px);
 }
 
-/* INPUT */
+/* INPUTS */
 input{
   width:100%;
   padding:12px;
-  margin-top:10px;
+  margin-top:8px;
   border-radius:12px;
   border:none;
   background:var(--glass2);
   color:var(--text);
 }
 
-/* BTN */
-button{
+/* BUTTON */
+.btn{
   width:100%;
   padding:12px;
   margin-top:12px;
@@ -96,8 +131,8 @@ button{
 
 /* RESULT */
 .result{
-  margin-top:12px;
-  font-size:16px;
+  margin-top:15px;
+  font-size:18px;
 }
 
 /* HISTORY */
@@ -110,44 +145,18 @@ button{
   justify-content:space-between;
 }
 
-/* AI OVERVIEW (NEW SYSTEM STYLE PANEL) */
-.aiBox{
-  margin-top:14px;
-  padding:14px;
-  border-radius:16px;
-  background:linear-gradient(135deg, rgba(110,231,255,0.18), rgba(124,255,107,0.12));
-  border:1px solid rgba(255,255,255,0.12);
-  backdrop-filter: blur(20px);
-}
-
-/* AI HEADER */
-.aiHeader{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-weight:700;
-  margin-bottom:6px;
-}
-
-/* fake Gemini-style logo */
-.aiIcon{
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  background: conic-gradient(from 180deg, #6ee7ff, #7CFF6B, #6ee7ff);
-  box-shadow:0 0 10px rgba(110,231,255,0.4);
-}
-
-/* AI text */
-.aiText{
+/* AI BOX */
+.ai{
+  margin-top:10px;
+  padding:10px;
+  border-radius:12px;
+  background:rgba(110,231,255,0.15);
   font-size:13px;
-  color:var(--text);
-  opacity:0.9;
 }
 
 /* DELETE */
 .del{
-  color:#ff5c5c;
+  color:var(--bad);
   cursor:pointer;
 }
 </style>
@@ -157,35 +166,54 @@ button{
 
 <div class="top">
   <div class="logo">Oceny+ <span>Next²</span></div>
+  <div class="menuBtn" onclick="toggleMenu()">☰</div>
 </div>
 
-<div class="card">
+<!-- MENU -->
+<div class="menu" id="menu">
+  <h3>Menu</h3>
 
+  <button onclick="toggleTheme()">Tryb jasny/ciemny</button>
+  <button onclick="toggleAI()">AI: ON/OFF</button>
+  <button onclick="clearHistory()">Wyczyść historię</button>
+
+  <p style="margin-top:15px;color:var(--muted);font-size:12px">
+    Oceny+ Next²<br>
+    system dla nauczycieli
+  </p>
+</div>
+
+<!-- MAIN -->
+<div class="card">
   <h3>Kalkulator punktów</h3>
 
   <input id="p" type="number" placeholder="Zdobyte punkty">
   <input id="m" type="number" placeholder="Maks punkty">
 
-  <button onclick="calc()">Oblicz</button>
+  <button class="btn" onclick="calc()">Oblicz</button>
 
   <div class="result" id="res"></div>
-
-  <!-- AI OVERVIEW PANEL -->
-  <div class="aiBox" id="aiBox" style="display:none;">
-    <div class="aiHeader">
-      <div class="aiIcon"></div>
-      <div>AI Overview</div>
-    </div>
-    <div class="aiText" id="aiText"></div>
-  </div>
+  <div class="ai" id="ai"></div>
 
   <div id="hist"></div>
-
 </div>
 
 <script>
-
+let ai = true;
 let history = [];
+
+function toggleMenu(){
+  document.getElementById("menu").classList.toggle("open");
+}
+
+function toggleTheme(){
+  document.body.classList.toggle("light");
+}
+
+function toggleAI(){
+  ai = !ai;
+  alert("AI: " + (ai ? "ON" : "OFF"));
+}
 
 function grade(p){
   if(p===100) return 6;
@@ -196,12 +224,12 @@ function grade(p){
   return 1;
 }
 
-function aiOverview(p){
-  if(p>=91) return "Ocena już na poziomie 5–6. Brak potrzeby poprawy.";
-  if(p>=76) return "Do oceny 5 brakuje ok. " + (91-p).toFixed(0) + "% punktów.";
+function aiLogic(p){
+  if(p>=91) return "Nie trzeba podciągać – masz 5 lub 6.";
+  if(p>=76) return "Brakuje ok. " + (91-p).toFixed(0) + "% do 5.";
   if(p>=51) return "Do 4 brakuje ok. " + (76-p).toFixed(0) + "%.";
   if(p>=30) return "Do 3 brakuje ok. " + (51-p).toFixed(0) + "%.";
-  return "Wymagana znacząca poprawa wyników.";
+  return "Trzeba dużo poprawy.";
 }
 
 function calc(){
@@ -214,30 +242,33 @@ function calc(){
   document.getElementById("res").innerHTML =
     "Wynik: " + percent.toFixed(1) + "% → ocena: " + g;
 
-  // AI OVERVIEW PANEL
-  document.getElementById("aiBox").style.display = "block";
-  document.getElementById("aiText").innerText = aiOverview(percent);
+  document.getElementById("ai").innerHTML =
+    ai ? "AI: " + aiLogic(percent) : "";
 
-  // history
-  history.unshift({percent,g});
-  render();
+  history.unshift({p, m, percent, g});
+
+  renderHistory();
 }
 
-function render(){
-  document.getElementById("hist").innerHTML =
-  history.map((x,i)=>`
-    <div class="item">
+function renderHistory(){
+  let h = document.getElementById("hist");
+  h.innerHTML = history.map((x,i)=>
+    `<div class="item">
       <div>${x.percent.toFixed(1)}% → ${x.g}</div>
-      <div class="del" onclick="del(${i})">×</div>
-    </div>
-  `).join("");
+      <div class="del" onclick="del(${i})">usuń</div>
+    </div>`
+  ).join("");
 }
 
 function del(i){
   history.splice(i,1);
-  render();
+  renderHistory();
 }
 
+function clearHistory(){
+  history=[];
+  renderHistory();
+}
 </script>
 
 </body>
