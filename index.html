@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oceny+ Next²</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0b0f17;
+  --glass: rgba(255,255,255,0.06);
+  --glass2: rgba(255,255,255,0.09);
+  --text:#eaf0ff;
+  --muted:#8b93a7;
+  --accent:#6ee7ff;
+}
+
+.light{
+  --bg:#eef2ff;
+  --glass: rgba(255,255,255,0.7);
+  --glass2: rgba(255,255,255,0.9);
+  --text:#0f172a;
+  --muted:#475569;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* BACKDROP */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 20% 20%, #6ee7ff33, transparent 40%),
+    radial-gradient(circle at 80% 80%, #7CFF6B22, transparent 40%);
+  filter: blur(60px);
+  z-index:-1;
+}
+
+/* TOP */
+.top{
+  display:flex;
+  justify-content:space-between;
+  padding:16px;
+  align-items:center;
+}
+
+.logo{
+  font-weight:800;
+  font-size:20px;
+}
+
+.logo span{color:var(--accent);}
+
+/* CARD */
+.card{
+  margin:20px;
+  padding:20px;
+  background:var(--glass);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:20px;
+  backdrop-filter: blur(20px);
+}
+
+/* INPUT */
+input{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:12px;
+  border:none;
+  background:var(--glass2);
+  color:var(--text);
+}
+
+/* BTN */
+button{
+  width:100%;
+  padding:12px;
+  margin-top:12px;
+  border:none;
+  border-radius:12px;
+  background:var(--accent);
+  font-weight:800;
+  cursor:pointer;
+}
+
+/* RESULT */
+.result{
+  margin-top:12px;
+  font-size:16px;
+}
+
+/* HISTORY */
+.item{
+  margin-top:10px;
+  padding:10px;
+  border-radius:12px;
+  background:var(--glass2);
+  display:flex;
+  justify-content:space-between;
+}
+
+/* AI OVERVIEW (NEW SYSTEM STYLE PANEL) */
+.aiBox{
+  margin-top:14px;
+  padding:14px;
+  border-radius:16px;
+  background:linear-gradient(135deg, rgba(110,231,255,0.18), rgba(124,255,107,0.12));
+  border:1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(20px);
+}
+
+/* AI HEADER */
+.aiHeader{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+/* fake Gemini-style logo */
+.aiIcon{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background: conic-gradient(from 180deg, #6ee7ff, #7CFF6B, #6ee7ff);
+  box-shadow:0 0 10px rgba(110,231,255,0.4);
+}
+
+/* AI text */
+.aiText{
+  font-size:13px;
+  color:var(--text);
+  opacity:0.9;
+}
+
+/* DELETE */
+.del{
+  color:#ff5c5c;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+  <div class="logo">Oceny+ <span>Next²</span></div>
+</div>
+
+<div class="card">
+
+  <h3>Kalkulator punktów</h3>
+
+  <input id="p" type="number" placeholder="Zdobyte punkty">
+  <input id="m" type="number" placeholder="Maks punkty">
+
+  <button onclick="calc()">Oblicz</button>
+
+  <div class="result" id="res"></div>
+
+  <!-- AI OVERVIEW PANEL -->
+  <div class="aiBox" id="aiBox" style="display:none;">
+    <div class="aiHeader">
+      <div class="aiIcon"></div>
+      <div>AI Overview</div>
+    </div>
+    <div class="aiText" id="aiText"></div>
+  </div>
+
+  <div id="hist"></div>
+
+</div>
+
+<script>
+
+let history = [];
+
+function grade(p){
+  if(p===100) return 6;
+  if(p>=91) return 5;
+  if(p>=76) return 4;
+  if(p>=51) return 3;
+  if(p>=30) return 2;
+  return 1;
+}
+
+function aiOverview(p){
+  if(p>=91) return "Ocena już na poziomie 5–6. Brak potrzeby poprawy.";
+  if(p>=76) return "Do oceny 5 brakuje ok. " + (91-p).toFixed(0) + "% punktów.";
+  if(p>=51) return "Do 4 brakuje ok. " + (76-p).toFixed(0) + "%.";
+  if(p>=30) return "Do 3 brakuje ok. " + (51-p).toFixed(0) + "%.";
+  return "Wymagana znacząca poprawa wyników.";
+}
+
+function calc(){
+  let p = +document.getElementById("p").value;
+  let m = +document.getElementById("m").value;
+
+  let percent = (p/m)*100;
+  let g = grade(percent);
+
+  document.getElementById("res").innerHTML =
+    "Wynik: " + percent.toFixed(1) + "% → ocena: " + g;
+
+  // AI OVERVIEW PANEL
+  document.getElementById("aiBox").style.display = "block";
+  document.getElementById("aiText").innerText = aiOverview(percent);
+
+  // history
+  history.unshift({percent,g});
+  render();
+}
+
+function render(){
+  document.getElementById("hist").innerHTML =
+  history.map((x,i)=>`
+    <div class="item">
+      <div>${x.percent.toFixed(1)}% → ${x.g}</div>
+      <div class="del" onclick="del(${i})">×</div>
+    </div>
+  `).join("");
+}
+
+function del(i){
+  history.splice(i,1);
+  render();
+}
+
+</script>
+
+</body>
+</html>
